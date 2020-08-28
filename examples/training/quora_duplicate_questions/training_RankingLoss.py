@@ -11,6 +11,7 @@ import os
 from zipfile import ZipFile
 import random
 
+cur_dir = os.path.split(os.path.realpath(__file__))[0]
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -30,15 +31,15 @@ num_epochs = 10
 # I achieved the good results with a batch size of 300-350 (requires about 30 GB of GPU memory)
 train_batch_size = 64
 
-dataset_path = 'quora-IR-dataset'
-model_save_path = 'output/training_MultipleNegativesRankingLoss-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+dataset_path = os.path.join(cur_dir, 'quora-IR-dataset')
+model_save_path = os.path.join(cur_dir,'output/training_MultipleNegativesRankingLoss-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 os.makedirs(model_save_path, exist_ok=True)
 
 # Check if the dataset exists. If not, download and extract
 if not os.path.exists(dataset_path):
     logging.info("Dataset not found. Download")
-    zip_save_path = 'quora-IR-dataset.zip'
+    zip_save_path = os.path.join(cur_dir, 'quora-IR-dataset.zip')
     util.http_get(url='https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/datasets/quora-IR-dataset.zip', path=zip_save_path)
     with ZipFile(zip_save_path, 'r') as zip:
         zip.extractall(dataset_path)
