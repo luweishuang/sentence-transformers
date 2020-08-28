@@ -15,7 +15,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
      with a set of gold labels and computes the F1 score.
     """
 
-    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, duplicates_dict: Dict[str, Dict[str, bool]] = defaultdict(lambda: defaultdict(bool)), add_transitive_closure: bool = False, query_chunk_size:int = 5000, corpus_chunk_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False, batch_size: int = 16, name: str = ''):
+    def __init__(self, sentences_map: Dict[str, str], duplicates_list: List[Tuple[str, str]] = None, duplicates_dict: Dict[str, Dict[str, bool]] = None, add_transitive_closure: bool = False, query_chunk_size:int = 5000, corpus_chunk_size:int = 100000, max_pairs: int = 500000, top_k: int = 100, show_progress_bar: bool = False, batch_size: int = 16, name: str = ''):
         """
 
         :param sentences_map: A dictionary that maps sentence-ids to sentences, i.e. sentences_map[id] => sentence.
@@ -45,7 +45,7 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
         self.max_pairs = max_pairs
         self.top_k = top_k
 
-        self.duplicates = duplicates_dict
+        self.duplicates = duplicates_dict if duplicates_dict is not None else defaultdict(lambda: defaultdict(bool))
         if duplicates_list is not None:
             for id1, id2 in duplicates_list:
                 if id1 in sentences_map and id2 in sentences_map:
@@ -55,22 +55,13 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
 
         #Add transitive closure
         if add_transitive_closure:
-            new_entries = True
-            while new_entries:
-                new_entries = False
-                for a in self.duplicates:
-                    for b in list(self.duplicates[a]):
-                        for c in list(self.duplicates[b]):
-                            if a != c and not self.duplicates[a][c]:
-                                new_entries = True
-                                self.duplicates[a][c] = True
-                                self.duplicates[c][a] = True
+            self.duplicates = self.add_transitive_closure(self.duplicates)
 
 
         positive_key_pairs = set()
         for key1 in self.duplicates:
             for key2 in self.duplicates[key1]:
-                if self.duplicates[key1][key2] or self.duplicates[key2][key1]:
+                if key1 in sentences_map and key2 in sentences_map and (self.duplicates[key1][key2] or self.duplicates[key2][key1]):
                     positive_key_pairs.add(tuple(sorted([key1, key2])))
 
         self.total_num_duplicates = len(positive_key_pairs)
@@ -142,5 +133,33 @@ class ParaphraseMiningEvaluator(SentenceEvaluator):
                     writer.writerow([epoch, steps, best_precision, best_recall, best_f1, threshold, average_precision])
 
         return average_precision
+
+
+    @staticmethod
+    def add_transitive_closure(graph):
+        nodes_visited = set()
+        for a in list(graph.keys()):
+            if a not in nodes_visited:
+                connected_subgraph_nodes = set()
+                connected_subgraph_nodes.add(a)
+
+                # Add all nodes in the connected graph
+                neighbor_nodes_queue = list(graph[a])
+                while len(neighbor_nodes_queue) > 0:
+                    node = neighbor_nodes_queue.pop(0)
+                    if node not in connected_subgraph_nodes:
+                        connected_subgraph_nodes.add(node)
+                        neighbor_nodes_queue.extend(graph[node])
+
+                # Ensure transitivity between all nodes in the graph
+                connected_subgraph_nodes = list(connected_subgraph_nodes)
+                for i in range(len(connected_subgraph_nodes) - 1):
+                    for j in range(i + 1, len(connected_subgraph_nodes)):
+                        graph[connected_subgraph_nodes[i]][connected_subgraph_nodes[j]] = True
+                        graph[connected_subgraph_nodes[j]][connected_subgraph_nodes[i]] = True
+
+                        nodes_visited.add(connected_subgraph_nodes[i])
+                        nodes_visited.add(connected_subgraph_nodes[j])
+        return graph
 
 
