@@ -123,7 +123,9 @@ def downloads_dataset(dataset_name):
 def cli_main():
     # 作者在issues里提到的多语言的预训练模型 xlm-r-40langs-bert-base-nli-stsb-mean-tokens
     # 针对信息检索任务的多语言预训练模型  distilbert-multilingual-nli-stsb-quora-ranking
-    model = SentenceTransformer('distilbert-multilingual-nli-stsb-quora-ranking')
+    model_path = os.path.join(cur_dir, "models/distilbert-multilingual-nli-stsb-quora-ranking")
+    # model = SentenceTransformer('distilbert-multilingual-nli-stsb-quora-ranking')
+    model = SentenceTransformer(model_path)
 
     num_epochs = 10
     train_batch_size = 64
