@@ -24,15 +24,6 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     handlers=[LoggingHandler()])
 
 
-def get_data(data_file):
-    train_samples = []
-    with open(data_file, "r", encoding="utf-8") as f:
-        dataset = json.loads(f.read())
-        for cur_dialg in dataset:
-            train_samples.append(InputExample(texts=[cur_dialg[0].strip().replace(" ", ""), cur_dialg[1].strip().replace(" ", "")], label=1))   # 无论单轮还是多轮，只取最相关的前两句
-    return train_samples
-
-
 all_flag = string.punctuation + u'“《》「」』『·—□〈〉•’●‘×”・∫,?!.♪:⦆⦆╮╭〜😂👏💨✨◤◢☀€😍🙀ノ♥★⋯⋯σ≪≫♡⎢◊.|:—.↓∩'
 pattern_flag = re.compile('[%s]' % re.escape(all_flag))
 alpha_char = string.punctuation + u'abcdefghijklmnopqrstuvwxyz'
@@ -71,13 +62,27 @@ def data_clean(str_in):
     return text_3
 
 
+def get_data(data_file):
+    train_samples = []
+    discard_num = 0
+    with open(data_file, "r", encoding="utf-8") as f:
+        dataset = json.loads(f.read())
+        for cur_dialg in dataset:
+            query_sent = data_clean(cur_dialg[0])
+            content_sent = data_clean(cur_dialg[1])
+            if len(query_sent) == 0 or len(content_sent) == 0:
+                discard_num += 1
+                continue
+            else:
+                train_samples.append(InputExample(texts=[query_sent, content_sent], label=1))   # 无论单轮还是多轮，只取最相关的前两句
+    return train_samples
+
+
 def get_iq_corpus(data_file, max_ir_num, max_corpus_size):
     ir_queries = {}             #Our queries (qid => question)
     ir_corpus = {}              #Our corpus (qid => question)
     ir_relevant_docs = {}       #Mapping of relevant documents for a given query (qid => set([relevant_question_ids])
-
     # 验证集需要获取的变量有 ir_queries(ir_queries[qid] = query)5000, ir_corpus(ir_corpus[qid] = question)100000, ir_relevant_docs(ir_relevant_docs[qid] = set(duplicate_ids))
-
     discard_num = 0
     use_num = 0
     index_array = np.random.shuffle(np.arange(max_corpus_size))

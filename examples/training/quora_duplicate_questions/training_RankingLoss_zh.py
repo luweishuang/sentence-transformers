@@ -30,7 +30,6 @@ num_epochs = 10
 # I achieved the good results with a batch size of 300-350 (requires about 30 GB of GPU memory)
 train_batch_size = 64
 
-dataset_path = os.path.join(cur_dir, 'quora-IR-dataset')
 model_save_path = os.path.join(cur_dir, 'output/training_MultipleNegativesRankingLoss-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 
 os.makedirs(model_save_path, exist_ok=True)
